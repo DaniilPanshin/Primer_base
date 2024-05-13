@@ -1,6 +1,5 @@
 #!python
 import json
-
 import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for
 
@@ -8,7 +7,6 @@ app = Flask(__name__)
 
 with open('config.json') as config_file:
     config = json.load(config_file)
-
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -36,7 +34,14 @@ def index():
         )
         data = (gene, primer_name, sequence, order_date, clear, storage_location, notes)
         cursor.execute(statement, data)
-
+        with open('nucleotide_primers.sql', 'r') as sql_file:
+            lines = sql_file.readlines()
+        unlock_index = lines.index('UNLOCK TABLES;\n')
+        statement_to_file = f"INSERT INTO `primers` (`gene`, `primer_name`, `sequence`, `order_date`, `clear`, `storage_location`, `notes`) " \
+                            f"VALUES ('{gene}', '{primer_name}', '{sequence}', '{order_date}', '{clear}', '{storage_location}', '{notes}');\n".replace("'None'", 'NULL')
+        lines.insert(unlock_index, statement_to_file)
+        with open('nucleotide_primers.sql', 'w') as sql_file:
+            sql_file.writelines(lines)
         cursor.close()
         connection.close()
         return redirect(url_for('index'))
